@@ -44,7 +44,7 @@ kwargs = {'num_workers': 1, 'pin_memory': True} if args.cuda else {}
 #     datasets.MNIST('../data', train=False, transform=transforms.ToTensor()),
 #     batch_size=args.batch_size, shuffle=True, **kwargs)
 
-if not os.exists("results"):
+if not os.path.exists("results"):
     os.makedirs("results")
 
 
