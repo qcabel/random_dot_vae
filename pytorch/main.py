@@ -9,6 +9,7 @@ from torchvision.utils import save_image
 
 import numpy as np
 import scipy.ndimage
+import os
 
 
 parser = argparse.ArgumentParser(description='VAE MNIST Example')
@@ -24,6 +25,7 @@ parser.add_argument('--seed', type=int, default=1, metavar='S',
                     help='random seed (default: 1)')
 parser.add_argument('--log-interval', type=int, default=10, metavar='N',
                     help='how many batches to wait before logging training status')
+
 args = parser.parse_args()
 args.cuda = not args.no_cuda and torch.cuda.is_available()
 
@@ -41,6 +43,9 @@ kwargs = {'num_workers': 1, 'pin_memory': True} if args.cuda else {}
 # test_loader = torch.utils.data.DataLoader(
 #     datasets.MNIST('../data', train=False, transform=transforms.ToTensor()),
 #     batch_size=args.batch_size, shuffle=True, **kwargs)
+
+if not os.exists("results"):
+    os.makedirs("results")
 
 
 class VAE(nn.Module):
@@ -150,7 +155,7 @@ def train(epoch):
                 loss.item() / len(data)))
 
     print('====> Epoch: {} Average loss: {:.4f}'.format(
-          epoch, train_loss / args.epoch_size))
+          epoch, train_loss / args.epoch_size / args.batch_size))
 
 
 def test(epoch):
@@ -173,7 +178,7 @@ def test(epoch):
                 save_image(comparison.cpu(),
                            'results/reconstruction_' + str(epoch) + '.png', nrow=n)
 
-    test_loss /= args.epoch_size
+    test_loss /= (args.epoch_size * args.batch_size)
     print('====> Test set loss: {:.4f}'.format(test_loss))
 
 if __name__ == "__main__":
