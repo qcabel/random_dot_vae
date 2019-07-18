@@ -111,7 +111,7 @@ def matlab_style_gauss2D(shape=(3, 3), sigma=0.5):
         h /= sumh
     return h
 
-def next_random_dot_batch(batch_size, ifstandard=False):
+def next_random_dot_batch(batch_size, if_standard=False):
     """Random dot images generated online,
     if standard, generate one image with the dot in the middle"""
 
@@ -124,7 +124,7 @@ def next_random_dot_batch(batch_size, ifstandard=False):
     a = np.ones(batch_size, dtype=int)
     # a = np.random.randint(1, 11, self.batchsize)
 
-    if ifstandard:
+    if if_standard:
         batch_size = 1
         dot_img = np.zeros([28, 28])
         dot_img[14, 14] = 1
@@ -190,13 +190,14 @@ def test(epoch):
                 comparison = torch.cat([data.view(args.batch_size, 1, 28, 28)[:n],
                                        recon_batch.view(args.batch_size, 1, 28, 28)[:n]])
                 save_image(comparison.cpu(),
-                           'results/reconstruction_' + str(epoch) + '.png', nrow=n)
+                           'results/reconstruction_' + str(epoch) + '.png',
+                           nrow=n, pad_value=1)
 
     test_loss /= (args.epoch_size * args.batch_size)
     print('====> Test set loss: {:.4f}'.format(test_loss))
 
 # a standard image with one dot in the middle
-standard_img = next_random_dot_batch(1, ifstandard=True)
+standard_img = next_random_dot_batch(1, if_standard=True)
 standard_img = torch.from_numpy(standard_img).to(device)
 
 if __name__ == "__main__":
@@ -208,7 +209,8 @@ if __name__ == "__main__":
             sample = torch.randn(64, args.hidden_dim).to(device)
             sample = model.decode(sample).cpu()
             save_image(sample.view(64, 1, 28, 28),
-                       'results/sample_' + str(epoch) + '.png')
+                       'results/sample_' + str(epoch) + '.png',
+                       pad_value=1)
 
             # visualize latent space
             z_vis = torch.zeros(12*args.hidden_dim, args.hidden_dim)
