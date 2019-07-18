@@ -125,8 +125,8 @@ def next_random_dot_batch(batch_size, if_standard=False, if_grid=False):
 
     # control the number of dots displayed
     # random integer between 1 and 10 indicating the set size: how many dots in img
-    a = np.ones(batch_size, dtype=int)
-    # a = np.random.randint(1, 11, self.batchsize)
+    # a = 2*np.ones(batch_size, dtype=int)
+    a = np.random.randint(1, 7, batch_size)
 
     if if_standard:
         batch_size = 1
