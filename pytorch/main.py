@@ -11,6 +11,9 @@ import numpy as np
 import scipy.ndimage
 import os
 
+# class Args:
+#     pass
+# args = Args()
 
 parser = argparse.ArgumentParser(description='VAE random dot Example')
 parser.add_argument('--batch-size', type=int, default=128, metavar='N',
@@ -111,9 +114,10 @@ def matlab_style_gauss2D(shape=(3, 3), sigma=0.5):
         h /= sumh
     return h
 
-def next_random_dot_batch(batch_size, if_standard=False):
+def next_random_dot_batch(batch_size, if_standard=False, if_grid=False):
     """Random dot images generated online,
-    if standard, generate one image with the dot in the middle"""
+    if standard, generate one image with the dot in the middle
+    if grid, generate a batch with the dot moving across x/y axis"""
 
     # must be float32 array
     random_dot_imgs = np.empty([batch_size, 28*28], dtype=np.float32)
@@ -131,6 +135,21 @@ def next_random_dot_batch(batch_size, if_standard=False):
         dot_img = scipy.ndimage.convolve(dot_img, H, mode='nearest')  # filter
         dot_img = np.reshape(dot_img, [1, 28 * 28])  # flatten
         random_dot_imgs[0,:] = dot_img / np.max(dot_img)
+    elif if_grid:
+        coords = np.array([])
+        for i in range(28):
+            for j in range(28):
+                if coords.shape[0] == 0:
+                    coords = np.array([[i,j]])
+                else:
+                    coords = np.append(coords, [[i,j]], axis=0)
+        for ind, value in enumerate(coords):
+            dot_img = np.zeros([28, 28])
+            dot_img[value[0], value[1]] = 1
+            dot_img = scipy.ndimage.convolve(dot_img, H, mode='nearest')  # filter
+            dot_img = np.reshape(dot_img, [1, 28 * 28])  # flatten
+            dot_img = dot_img / np.max(dot_img)  # normalize to 1
+            random_dot_imgs[ind, :] = dot_img
     else:
         for i_img in range(batch_size):
             dot_img = np.zeros([28, 28])
@@ -199,6 +218,9 @@ def test(epoch):
 # a standard image with one dot in the middle
 standard_img = next_random_dot_batch(1, if_standard=True)
 standard_img = torch.from_numpy(standard_img).to(device)
+# grid image for "heatmap"
+grid_img = next_random_dot_batch(28*28, if_grid=True)
+grid_img = torch.from_numpy(grid_img).to(device)
 
 if __name__ == "__main__":
     for epoch in range(1, args.epochs + 1):
@@ -227,3 +249,11 @@ if __name__ == "__main__":
             save_image(z_vis.view(12*args.hidden_dim, 1, 28, 28),
                        'results/zvisualize_' + str(epoch) + '.png',
                        nrow=12, pad_value=1)
+
+            # what about a "heatmap"?
+            mu, logvar = model.encode(grid_img)
+            z = model.reparameterize(mu, logvar)
+            z = torch.t(z)#transpose
+            save_image(z.view(args.hidden_dim, 1, 28, 28),
+                       'results/z_location_tuning_' + str(epoch) + '.png',
+                       nrow=1, normalize=True, pad_value=1)
