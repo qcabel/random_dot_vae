@@ -136,16 +136,13 @@ def next_random_dot_batch(batch_size, if_standard=False, if_grid=False):
         dot_img = np.reshape(dot_img, [1, 28 * 28])  # flatten
         random_dot_imgs[0,:] = dot_img / np.max(dot_img)
     elif if_grid:
-        coords = np.array([])
-        for i in range(28):
-            for j in range(28):
-                if coords.shape[0] == 0:
-                    coords = np.array([[i,j]])
-                else:
-                    coords = np.append(coords, [[i,j]], axis=0)
-        for ind, value in enumerate(coords):
+        coords = np.hstack([
+            np.repeat(np.arange(28), 28).reshape(-1, 1),
+            np.tile(np.arange(28), 28).reshape(-1, 1)
+        ])
+        for ind, (x, y) in enumerate(coords):
             dot_img = np.zeros([28, 28])
-            dot_img[value[0], value[1]] = 1
+            dot_img[x, y] = 1
             dot_img = scipy.ndimage.convolve(dot_img, H, mode='nearest')  # filter
             dot_img = np.reshape(dot_img, [1, 28 * 28])  # flatten
             dot_img = dot_img / np.max(dot_img)  # normalize to 1
