@@ -32,6 +32,9 @@ parser.add_argument('--hidden-dim', type=int, default=6, metavar='N',
                     help='dimension of the hidden space z')
 parser.add_argument('--beta-latent-loss', type=float, default=1,
                     help='beta to control the weight for kl-divergence loss')
+parser.add_argument('--dot-size', type=float, default=2,
+                    help='gaussian filter kernel width, the larger, '
+                         'the more spreading out the dots')
 
 args = parser.parse_args()
 args.cuda = not args.no_cuda and torch.cuda.is_available()
@@ -114,14 +117,14 @@ def matlab_style_gauss2D(shape=(3, 3), sigma=0.5):
         h /= sumh
     return h
 
-def next_random_dot_batch(batch_size, if_standard=False, if_grid=False):
+def next_random_dot_batch(batch_size, if_standard=False, if_grid=False, dot_size=2):
     """Random dot images generated online,
     if standard, generate one image with the dot in the middle
     if grid, generate a batch with the dot moving across x/y axis"""
 
     # must be float32 array
     random_dot_imgs = np.empty([batch_size, 28*28], dtype=np.float32)
-    H = matlab_style_gauss2D([15, 15], 2)  # lowpass filter
+    H = matlab_style_gauss2D([15, 15], dot_size)  # lowpass filter
 
     # control the number of dots displayed
     # random integer between 1 and 10 indicating the set size: how many dots in img
@@ -145,7 +148,7 @@ def next_random_dot_batch(batch_size, if_standard=False, if_grid=False):
             dot_img[x, y] = 1
             dot_img = scipy.ndimage.convolve(dot_img, H, mode='nearest')  # filter
             dot_img = np.reshape(dot_img, [1, 28 * 28])  # flatten
-            dot_img = dot_img / np.max(dot_img)  # normalize to 1
+            dot_img = dot_img / np.max(dot_img)       # normalize to 1
             random_dot_imgs[ind, :] = dot_img
     else:
         for i_img in range(batch_size):
@@ -168,7 +171,7 @@ def train(epoch):
     # generate 100 mini-batch per epoch
     for batch_idx in range(args.epoch_size):
         # generate the random dot, then convert numpy array to tensor
-        data = next_random_dot_batch(args.batch_size)
+        data = next_random_dot_batch(args.batch_size, dot_size=args.dot_size)
         # numpy -> tensor
         data = torch.from_numpy(data).to(device)
 
@@ -193,7 +196,7 @@ def test(epoch):
     test_loss = 0
     with torch.no_grad():
         for i in range(args.epoch_size):
-            data = next_random_dot_batch(args.batch_size)
+            data = next_random_dot_batch(args.batch_size, dot_size=args.dot_size)
             # numpy -> tensor
             data = torch.from_numpy(data).to(device)
 
@@ -207,16 +210,16 @@ def test(epoch):
                                        recon_batch.view(args.batch_size, 1, 28, 28)[:n]])
                 save_image(comparison.cpu(),
                            'results/reconstruction_' + str(epoch) + '.png',
-                           nrow=n, pad_value=1)
+                           nrow=n, pad_value=1, normalize=True)
 
     test_loss /= (args.epoch_size * args.batch_size)
     print('====> Test set loss: {:.4f}'.format(test_loss))
 
 # a standard image with one dot in the middle
-standard_img = next_random_dot_batch(1, if_standard=True)
+standard_img = next_random_dot_batch(1, if_standard=True, dot_size=args.dot_size)
 standard_img = torch.from_numpy(standard_img).to(device)
 # grid image for "heatmap"
-grid_img = next_random_dot_batch(28*28, if_grid=True)
+grid_img = next_random_dot_batch(28*28, if_grid=True, dot_size=args.dot_size)
 grid_img = torch.from_numpy(grid_img).to(device)
 
 if __name__ == "__main__":
